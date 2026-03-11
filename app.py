@@ -171,8 +171,22 @@ def search_youtube(api_key: str, topic: str) -> list:
     return items
 
 
+def _build_proxies() -> dict | None:
+    """Build proxy dict from YOUTUBE_PROXY env var (format: host:port:user:pass)."""
+    proxy_str = os.environ.get("YOUTUBE_PROXY", "").strip()
+    if not proxy_str:
+        return None
+    parts = proxy_str.split(":")
+    if len(parts) != 4:
+        return None
+    host, port, user, password = parts
+    proxy_url = f"http://{user}:{password}@{host}:{port}"
+    return {"http": proxy_url, "https": proxy_url}
+
+
 def get_transcript(video_id: str) -> tuple[str, str]:
-    api = YouTubeTranscriptApi()
+    proxies = _build_proxies()
+    api = YouTubeTranscriptApi(proxies=proxies) if proxies else YouTubeTranscriptApi()
     fetched = api.fetch(video_id)
     snippets = fetched.snippets if hasattr(fetched, "snippets") else list(fetched)
     text = " ".join(s.text for s in snippets).strip()
