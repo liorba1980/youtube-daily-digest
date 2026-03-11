@@ -38,7 +38,7 @@ CORS(app)
 
 # ── Storage paths (override DATA_DIR on Railway with a volume mount) ──────────
 
-DATA_DIR = os.environ.get("DATA_DIR", "data")
+DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
 os.makedirs(DATA_DIR, exist_ok=True)
 
 DB_PATH = os.path.join(DATA_DIR, "users.db")
