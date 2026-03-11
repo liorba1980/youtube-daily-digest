@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — YouTube Daily Digest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ff0000; --green: #16a34a; --blue: #2563eb;
+      --border: #e2e8f0; --bg: #f0f2f5; --card: #fff; --muted: #666;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); min-height: 100vh; }
+    header {
+      background: var(--red); color: #fff;
+      padding: 0 24px; height: 58px;
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    header h1 { font-size: 18px; font-weight: 700; flex: 1; }
+    .nav-links { display: flex; gap: 10px; }
+    .nav-links a {
+      color: rgba(255,255,255,.85); font-size: 13px; font-weight: 600;
+      text-decoration: none; padding: 5px 12px;
+      background: rgba(255,255,255,.15); border-radius: 20px;
+    }
+    .nav-links a:hover { background: rgba(255,255,255,.25); }
+    main { max-width: 700px; margin: 32px auto; padding: 0 16px; display: flex; flex-direction: column; gap: 20px; }
+    .card { background: var(--card); border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .card-header h2 { font-size: 14px; font-weight: 700; flex: 1; }
+    .card-body { padding: 18px; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
+    input[type=text], input[type=password] {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 14px; outline: none; font-family: inherit;
+    }
+    input:focus { border-color: var(--red); box-shadow: 0 0 0 3px #fee2e2; }
+    .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .row .field { flex: 1; min-width: 140px; margin-bottom: 0; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: 6px; font-size: 13px;
+      font-weight: 600; cursor: pointer; border: none; font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--red); color: #fff; }
+    .btn-primary:hover { background: #cc0000; }
+    .btn-danger  { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .check-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-top: 4px; cursor: pointer; }
+    .check-row input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--red); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; border-bottom: 2px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-admin { background: #fee2e2; color: #dc2626; }
+    .badge-user  { background: #e0f2fe; color: #0369a1; }
+    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; }
+    .toast { background: #1e293b; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.25); animation: slideIn .25s ease; }
+    .toast.ok  { background: var(--green); }
+    .toast.err { background: #dc2626; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    #pw-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.4); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    #pw-modal-overlay.open { display: flex; }
+    #pw-modal {
+      background: #fff; border-radius: 12px; padding: 28px;
+      width: 100%; max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    }
+    #pw-modal h3 { font-size: 15px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:22px">📺</span>
+  <h1>Admin Panel</h1>
+  <div class="nav-links">
+    <a href="/">← Dashboard</a>
+    <a href="/logout">Logout</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- Create user -->
+  <div class="card">
+    <div class="card-header">
+      <span style="font-size:16px">➕</span>
+      <h2>Create New Account</h2>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="new-username" placeholder="e.g. alice" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="new-password" placeholder="Strong password" />
+        </div>
+        <button class="btn btn-primary" onclick="createUser()">Create</button>
+      </div>
+      <label class="check-row" style="margin-top:12px">
+        <input type="checkbox" id="new-is-admin" />
+        Make this user an admin
+      </label>
+      <div class="hint">Share the username &amp; password with your friend. They can change their password in the future.</div>
+    </div>
+  </div>
+
+  <!-- Users list -->
+  <div class="card">
+    <div class="card-header">
+      <span style="font-size:16px">👥</span>
+      <h2>All Users</h2>
+      <button class="btn btn-primary btn-sm" onclick="loadUsers()" style="margin-left:auto">↺ Refresh</button>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="user-table-body">
+          <tr><td colspan="4" style="text-align:center;color:#888;padding:24px">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- Password reset modal -->
+<div id="pw-modal-overlay">
+  <div id="pw-modal">
+    <h3>Reset Password for <span id="pw-modal-name"></span></h3>
+    <div class="field">
+      <label>New Password</label>
+      <input type="password" id="pw-modal-input" placeholder="New password" />
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" onclick="confirmResetPassword()">Save</button>
+      <button class="btn" style="background:#f1f5f9;border:1px solid #e2e8f0" onclick="closePwModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+  let resetTargetId = null;
+
+  function toast(msg, type = '') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  async function loadUsers() {
+    const tbody = document.getElementById('user-table-body');
+    try {
+      const users = await api('/api/admin/users');
+      if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:24px">No users yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td style="color:#999">#${u.id}</td>
+          <td><strong>${esc(u.username)}</strong></td>
+          <td><span class="badge ${u.is_admin ? 'badge-admin' : 'badge-user'}">${u.is_admin ? 'Admin' : 'User'}</span></td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-danger btn-sm" onclick="openPwModal(${u.id}, '${esc(u.username)}')">Reset PW</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${esc(u.username)}')">Delete</button>
+          </td>
+        </tr>`).join('');
+    } catch (e) {
+      toast('Failed to load users: ' + e.message, 'err');
+    }
+  }
+
+  async function createUser() {
+    const username = document.getElementById('new-username').value.trim();
+    const password = document.getElementById('new-password').value.trim();
+    const is_admin = document.getElementById('new-is-admin').checked;
+    if (!username || !password) { toast('Username and password are required.', 'err'); return; }
+    try {
+      await api('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, is_admin }),
+      });
+      toast(`Account "${username}" created!`, 'ok');
+      document.getElementById('new-username').value = '';
+      document.getElementById('new-password').value = '';
+      document.getElementById('new-is-admin').checked = false;
+      loadUsers();
+    } catch (e) {
+      toast('Error: ' + e.message, 'err');
+    }
+  }
+
+  async function deleteUser(id, name) {
+    if (!confirm(`Delete account "${name}"? This cannot be undone.`)) return;
+    try {
+      await api(`/api/admin/users/${id}`, { method: 'DELETE' });
+      toast(`Deleted "${name}".`, 'ok');
+      loadUsers();
+    } catch (e) {
+      toast('Error: ' + e.message, 'err');
+    }
+  }
+
+  function openPwModal(id, name) {
+    resetTargetId = id;
+    document.getElementById('pw-modal-name').textContent = name;
+    document.getElementById('pw-modal-input').value = '';
+    document.getElementById('pw-modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('pw-modal-input').focus(), 100);
+  }
+
+  function closePwModal() {
+    document.getElementById('pw-modal-overlay').classList.remove('open');
+    resetTargetId = null;
+  }
+
+  async function confirmResetPassword() {
+    const pw = document.getElementById('pw-modal-input').value.trim();
+    if (!pw) { toast('Enter a new password.', 'err'); return; }
+    try {
+      await api(`/api/admin/users/${resetTargetId}/password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      });
+      toast('Password updated!', 'ok');
+      closePwModal();
+    } catch (e) {
+      toast('Error: ' + e.message, 'err');
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Close modal on overlay click
+  document.getElementById('pw-modal-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closePwModal();
+  });
+
+  loadUsers();
+</script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Daily Digest</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:   #ff0000;
+      --dark:  #1a1a2e;
+      --card:  #ffffff;
+      --bg:    #f0f2f5;
+      --text:  #222;
+      --muted: #666;
+      --border:#e2e8f0;
+      --green: #16a34a;
+      --amber: #d97706;
+      --blue:  #2563eb;
+      --radius: 10px;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    header {
+      background: var(--red);
+      color: #fff;
+      padding: 0 24px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    header .logo { font-size: 22px; }
+    header h1 { font-size: 18px; font-weight: 700; flex: 1; }
+    header .pill {
+      background: rgba(255,255,255,.2);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
+
+    .col-left  { display: flex; flex-direction: column; gap: 20px; }
+    .col-right { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-header h2 { font-size: 14px; font-weight: 700; flex: 1; }
+    .card-header .icon { font-size: 16px; }
+    .card-body { padding: 18px; }
+
+    /* ── Status bar ── */
+    #status-bar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ccc;
+      flex-shrink: 0;
+    }
+    .status-dot.ok  { background: var(--green); box-shadow: 0 0 0 3px #dcfce7; }
+    .status-dot.bad { background: var(--red);   box-shadow: 0 0 0 3px #fee2e2; }
+    #status-text { flex: 1; font-size: 13px; }
+    #status-text strong { display: block; font-size: 14px; }
+    .meta { font-size: 12px; color: var(--muted); }
+
+    /* ── Form ── */
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
+    input[type=text], input[type=email], input[type=time], input[type=password] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    input:focus { border-color: var(--red); box-shadow: 0 0 0 3px #fee2e2; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--red); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #cc0000; }
+    .btn-secondary { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover:not(:disabled) { background: #15803d; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+    /* ── Toggle for password ── */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 38px; }
+    .pw-toggle {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; font-size: 16px; color: var(--muted);
+    }
+
+    /* ── Logs ── */
+    #log-list {
+      list-style: none;
+      max-height: 340px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #log-list li {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      background: #f8fafc;
+      border-left: 3px solid #e2e8f0;
+      line-height: 1.5;
+    }
+    #log-list li.info    { border-color: var(--blue); }
+    #log-list li.success { border-color: var(--green); background: #f0fdf4; }
+    #log-list li.error   { border-color: var(--red);   background: #fff1f2; }
+    #log-list li.warning { border-color: var(--amber);  background: #fffbeb; }
+    .log-ts { color: var(--muted); white-space: nowrap; }
+    .log-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .badge-info    { background:#dbeafe; color:var(--blue); }
+    .badge-success { background:#dcfce7; color:var(--green); }
+    .badge-error   { background:#fee2e2; color:var(--red); }
+    .badge-warning { background:#fef3c7; color:var(--amber); }
+    #log-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 24px 0; }
+
+    /* ── Toast ── */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px;
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 9999;
+    }
+    .toast {
+      background: #1e293b; color: #fff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.25);
+      animation: slideIn .25s ease;
+      max-width: 320px;
+    }
+    .toast.toast-success { background: var(--green); }
+    .toast.toast-error   { background: #dc2626; }
+    @keyframes slideIn {
+      from { transform: translateX(120%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Section divider ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin: 4px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Help tips ── */
+    .tip-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #1e40af;
+    }
+    .tip-box a { color: #1d4ed8; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">📺</span>
+  <h1>YouTube Daily Digest</h1>
+  <span class="pill" id="header-topic">Loading…</span>
+  <div style="display:flex;gap:8px;margin-left:12px" id="header-nav">
+    <a id="admin-link" href="/admin" style="display:none;background:rgba(255,255,255,.2);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none">⚙ Admin</a>
+    <a href="/logout" style="background:rgba(255,255,255,.2);color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none">Logout</a>
+  </div>
+</header>
+
+<main>
+  <!-- Status bar -->
+  <div id="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <div id="status-text">
+      <strong id="status-title">Checking configuration…</strong>
+      <span class="meta" id="status-meta"></span>
+    </div>
+    <button class="btn btn-green" id="btn-trigger" onclick="triggerNow()" disabled>
+      ▶ Run Now
+    </button>
+  </div>
+
+  <!-- Left column -->
+  <div class="col-left">
+
+    <!-- Topics & Schedule -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">🔍</span>
+        <h2>Topics & Schedule</h2>
+        <span id="topic-rotation-badge" class="pill" style="background:#fee2e2;color:#dc2626;font-size:11px;padding:3px 10px;border-radius:20px"></span>
+      </div>
+      <div class="card-body">
+        <p class="section-label">5 Topics (rotate one per day)</p>
+        <div id="topics-list"></div>
+        <div class="field" style="margin-top:16px">
+          <label>Daily Send Time (24h, your local time)</label>
+          <input type="time" id="s-time" value="08:00" />
+        </div>
+        <div class="field" style="margin-top:16px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--text)">
+            <input type="checkbox" id="s-hebrew" style="width:16px;height:16px;cursor:pointer;accent-color:var(--red)" />
+            Translate summaries to Hebrew (עברית)
+          </label>
+          <div class="hint">When enabled, Claude will summarize and translate the content into Hebrew regardless of the video's language.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📧</span>
+        <h2>Email Settings</h2>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Recipient Email</label>
+          <input type="email" id="s-email" placeholder="you@example.com" />
+        </div>
+        <p class="section-label">Gmail Sender Account</p>
+        <div class="field">
+          <label>Gmail Address</label>
+          <input type="email" id="s-gmail-user" placeholder="sender@gmail.com" />
+          <div class="hint">The Gmail account that will send the digest.</div>
+        </div>
+        <div class="field">
+          <label>Gmail App Password</label>
+          <div class="pw-wrap">
+            <input type="password" id="s-gmail-pw" placeholder="xxxx xxxx xxxx xxxx" />
+            <button class="pw-toggle" onclick="togglePw('s-gmail-pw',this)">👁</button>
+          </div>
+          <div class="hint">16-char App Password from Google Account → Security → 2-Step Verification → App Passwords.</div>
+        </div>
+        <div class="tip-box">
+          ⚠️ Use a <strong>Gmail App Password</strong>, NOT your regular password.<br>
+          Enable 2-Step Verification first, then create an App Password at
+          <a href="https://myaccount.google.com/apppasswords" target="_blank">myaccount.google.com/apppasswords</a>.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right column -->
+  <div class="col-right">
+
+    <!-- API Keys -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">🔑</span>
+        <h2>API Keys</h2>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>YouTube Data API v3 Key</label>
+          <div class="pw-wrap">
+            <input type="password" id="s-yt-key" placeholder="AIza…" />
+            <button class="pw-toggle" onclick="togglePw('s-yt-key',this)">👁</button>
+          </div>
+          <div class="hint">
+            Get free key at
+            <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--blue)">console.cloud.google.com</a>
+            → YouTube Data API v3.
+          </div>
+        </div>
+        <div class="field">
+          <label>Claude API Key (Anthropic)</label>
+          <div class="pw-wrap">
+            <input type="password" id="s-claude-key" placeholder="sk-ant-…" />
+            <button class="pw-toggle" onclick="togglePw('s-claude-key',this)">👁</button>
+          </div>
+          <div class="hint">
+            Get key at
+            <a href="https://console.anthropic.com/" target="_blank" style="color:var(--blue)">console.anthropic.com</a>.
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveSettings()" id="btn-save">💾 Save Settings</button>
+          <button class="btn btn-secondary" onclick="loadSettings()">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity log -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📋</span>
+        <h2>Activity Log</h2>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick="clearLogs()">Clear</button>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick="loadLogs()">↺</button>
+      </div>
+      <div class="card-body" style="padding:12px">
+        <ul id="log-list">
+          <li id="log-empty" style="list-style:none;border:none;background:none">Loading logs…</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  function toast(msg, type = '') {
+    const el = document.createElement('div');
+    el.className = `toast ${type ? 'toast-' + type : ''}`;
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  function togglePw(id, btn) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, opts);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  // ── Settings ─────────────────────────────────────────────────────────────
+
+  function buildTopicFields(topics, activeIndex) {
+    const allFilled = topics.filter(t => t.trim());
+    const container = document.getElementById('topics-list');
+    container.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const isActive = allFilled.length > 0 &&
+        allFilled[activeIndex % allFilled.length] === (topics[i] || '').trim() &&
+        (topics[i] || '').trim() !== '';
+      const div = document.createElement('div');
+      div.className = 'field';
+      div.style.marginBottom = '10px';
+      div.innerHTML = `
+        <label style="display:flex;align-items:center;gap:6px">
+          <span style="background:${isActive ? '#ff0000' : '#e2e8f0'};color:${isActive ? '#fff' : '#666'};
+            width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;
+            justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${i + 1}</span>
+          Topic ${i + 1}${isActive ? ' <span style="color:#ff0000;font-weight:700">← today</span>' : ''}
+        </label>
+        <input type="text" id="s-topic-${i}" placeholder="e.g. machine learning"
+          value="${(topics[i] || '').replace(/"/g, '&quot;')}"
+          style="margin-top:4px" />`;
+      container.appendChild(div);
+    }
+  }
+
+  async function loadSettings() {
+    try {
+      const s = await api('/api/settings');
+      const topics = s.topics || ['', '', '', '', ''];
+      buildTopicFields(topics, s.topic_index || 0);
+      document.getElementById('s-time').value        = s.send_time || '08:00';
+      document.getElementById('s-email').value       = s.email || '';
+      document.getElementById('s-gmail-user').value  = s.gmail_user || '';
+      document.getElementById('s-gmail-pw').value    = s.gmail_app_password || '';
+      document.getElementById('s-yt-key').value      = s.youtube_api_key || '';
+      document.getElementById('s-claude-key').value  = s.claude_api_key || '';
+      document.getElementById('s-hebrew').checked    = s.translate_to_hebrew || false;
+    } catch (e) {
+      toast('Failed to load settings', 'error');
+    }
+  }
+
+  async function saveSettings() {
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Saving…';
+    try {
+      const topics = [0,1,2,3,4].map(i => (document.getElementById(`s-topic-${i}`)?.value || '').trim());
+      await api('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topics,
+          send_time:           document.getElementById('s-time').value,
+          email:               document.getElementById('s-email').value.trim(),
+          gmail_user:          document.getElementById('s-gmail-user').value.trim(),
+          gmail_app_password:  document.getElementById('s-gmail-pw').value.trim(),
+          youtube_api_key:     document.getElementById('s-yt-key').value.trim(),
+          claude_api_key:      document.getElementById('s-claude-key').value.trim(),
+          translate_to_hebrew: document.getElementById('s-hebrew').checked,
+        }),
+      });
+      toast('Settings saved!', 'success');
+      refreshStatus();
+    } catch (e) {
+      toast('Save failed: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '💾 Save Settings';
+    }
+  }
+
+  // ── Status ────────────────────────────────────────────────────────────────
+
+  async function refreshStatus() {
+    try {
+      const s = await api('/api/status');
+      const dot   = document.getElementById('status-dot');
+      const title = document.getElementById('status-title');
+      const meta  = document.getElementById('status-meta');
+      const btn   = document.getElementById('btn-trigger');
+      const pill  = document.getElementById('header-topic');
+
+      const topicLabel = s.active_topic
+        ? `Topic ${s.topic_num}/${s.topic_total}: ${s.active_topic}`
+        : 'No topics set';
+      pill.textContent = topicLabel;
+
+      if (s.configured) {
+        dot.className = 'status-dot ok';
+        title.textContent = '✅ Ready — all settings configured';
+        meta.textContent = `Scheduled daily at ${s.scheduled_time} · ${topicLabel}`;
+        btn.disabled = false;
+      } else {
+        dot.className = 'status-dot bad';
+        title.textContent = '⚠️ Incomplete — fill in all settings below';
+        meta.textContent = 'API keys, email, at least one topic, and Gmail credentials are required.';
+        btn.disabled = true;
+      }
+
+      // Update the rotation badge in the Topics card
+      const badge = document.getElementById('topic-rotation-badge');
+      if (badge && s.topic_total > 0) {
+        badge.textContent = `Today: #${s.topic_num} of ${s.topic_total}`;
+      }
+
+      if (s.last_log) {
+        const icon = s.last_log.status === 'success' ? '✅' : s.last_log.status === 'error' ? '❌' : 'ℹ️';
+        meta.textContent += `  |  Last: ${icon} ${s.last_log.message} (${s.last_log.timestamp})`;
+      }
+    } catch (e) {
+      console.warn('Status fetch failed', e);
+    }
+  }
+
+  // ── Logs ──────────────────────────────────────────────────────────────────
+
+  const BADGE = {
+    info:    '<span class="log-badge badge-info">INFO</span>',
+    success: '<span class="log-badge badge-success">OK</span>',
+    error:   '<span class="log-badge badge-error">ERR</span>',
+    warning: '<span class="log-badge badge-warning">WARN</span>',
+  };
+
+  async function loadLogs() {
+    try {
+      const logs = await api('/api/logs?limit=60');
+      const ul = document.getElementById('log-list');
+      if (!logs.length) {
+        ul.innerHTML = '<li id="log-empty" style="list-style:none;border:none;background:none;color:#888;text-align:center;padding:24px 0">No activity yet — save settings and click ▶ Run Now to test.</li>';
+        return;
+      }
+      ul.innerHTML = logs.map(l => `
+        <li class="${l.status || 'info'}">
+          <span class="log-ts">${l.timestamp}</span>
+          ${BADGE[l.status] || BADGE.info}
+          <span>${escHtml(l.message)}</span>
+        </li>`).join('');
+    } catch (e) {
+      console.warn('Log fetch failed', e);
+    }
+  }
+
+  async function clearLogs() {
+    await api('/api/logs', { method: 'DELETE' });
+    loadLogs();
+    toast('Logs cleared');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Trigger ───────────────────────────────────────────────────────────────
+
+  async function triggerNow() {
+    const btn = document.getElementById('btn-trigger');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Running…';
+    try {
+      await api('/api/trigger', { method: 'POST' });
+      toast('Job started! Check the log below.', 'success');
+      // Poll logs every 4 s for 90 s
+      let polls = 0;
+      const iv = setInterval(() => {
+        loadLogs();
+        refreshStatus();
+        if (++polls >= 22) {
+          clearInterval(iv);
+          btn.disabled = false;
+          btn.innerHTML = '▶ Run Now';
+        }
+      }, 4000);
+    } catch (e) {
+      toast('Failed to start job: ' + e.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '▶ Run Now';
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  // Show admin link if user is admin
+  fetch('/api/me').then(r => r.json()).then(me => {
+    if (me.is_admin) document.getElementById('admin-link').style.display = 'inline';
+  }).catch(() => {});
+
+  loadSettings();
+  refreshStatus();
+  loadLogs();
+
+  // Auto-refresh logs every 10 s
+  setInterval(() => { loadLogs(); refreshStatus(); }, 10_000);
+</script>
+</body>
+</html>

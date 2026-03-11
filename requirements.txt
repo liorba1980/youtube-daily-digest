@@ -1,0 +1,8 @@
+flask
+flask-cors
+flask-login
+flask-sqlalchemy
+anthropic
+youtube-transcript-api==1.2.4
+schedule
+requests
